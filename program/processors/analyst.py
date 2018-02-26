@@ -15,13 +15,19 @@ class Analyst:
         # this is my intermediate write function that i will replace with final benchmarks
         for year in matchedDfs:
             dataframefile.data = matchedDfs[year]
-            dataframefile.write(year+'assessment')
+            dataframefile.write(year+'assessment') # UPDATE: .write to include a PATH argument
 
         targetHeld = self.compute_target_held(matchedDfs)
+        # print outputs of targetHeld to commandline for now
         for i in targetHeld:
             print(f"{i} {targetHeld[i]}%")
-        # self.compute_carbon_held()
-        # self.compute_carbon_quantiles()
+
+        carbonHeld = self.compute_carbon_held(matchedDfs)
+        for year in carbonHeld:
+            dataframefile.data = carbonHeld[year]
+            dataframefile.write(year+'analysis') # UPDATE: .write to include a PATH argument
+        # write final assessment to a CSV file
+        # DEVELOP: summary statistics to print to commandline
 
     def match(self):
         # this should return one master dictionary by year with ALL data in one dataframe for that year
@@ -98,3 +104,38 @@ class Analyst:
             targetEquityValue = df.loc[df['Company(Company)'].notnull(), 'EndingMarketValue'].sum()
             targetHeld[year] = targetEquityValue / totalEquityValue
         return targetHeld
+
+    def compute_carbon_held(self, matchedDfs):
+        # returns a dictionary of dataframes with carbon holdings information for each dataframe in matchedDfs
+        carbonHeld = {}
+
+        fuels = ['Coal', 'Oil', 'Gas'] # I manually instantiate this but i need to pull it from the column headers
+        # find where the columns with units are - those like Name(Units)
+        # pull the name from the Name and pull the Units from (Units)
+        # populate fuels with Name != Company
+        for year in matchedDfs:
+            df = matchedDfs[year]
+            # replace '(GtCO2)' with Unit from Units
+            # can i list comprehend a dictionary?
+            # populate dataframe with intensities (tCO2/$ of company market cap)
+            for reserve in [x + '(GtCO2)' for x in fuels]: # replace '(GtCO2)' with Unit from Units
+                # three things here 1) I need to be able to smartly slice fuel len(Unit) 2) Intensity must have the Units / $B b/c i can't assume that it can be simplified
+                # 3) I need to find the appropriate column for marketcap, unless i document it in the data standard
+                df[reserve[:-7] + 'Intensity(tCO2/$)'] = df[reserve] / df['MarketCap(B)']
+                df[reserve + 'Pctile'] =  df[reserve].rank(pct=True) # calculate the percentile of total reserves while we're here
+            # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
+            # populate dataframe with ratio of intensity to holdings (CO2 intensity / $ held)
+            for intensity in [x + 'Intensity(tCO2/$)' for x in fuels]:
+                # three things here 1) I need to be able to smartly slice fuel len(Unit) 2) Intensity must have the Units / $B b/c i can't assume that it can be simplified
+                # 3) I need to find the appropriate column for marketcap, unless i document it in the data standard
+                df[intensity[:-17] + '(tCO2)'] = df[intensity] * df['EndingMarketValue']
+                df[intensity[:-17] + 'DivestRatio'] = df[intensity] / df['EndingMarketValue']
+                df[intensity + 'Pctile'] = df[intensity].rank(pct=True) # calculate percentile of intensities while we're here
+                df[intensity[:-17] + '(tCO2)' + 'Pctile'] = df[intensity[:-17] + '(tCO2)'].rank(pct=True) # calculate percentiles of CO2 held per stock while we're here
+            # remove any infinities created by EMV = 0
+            df = df.replace(np.inf, np.nan)
+
+            # drop financial rows not needed in this view
+            df = df.drop(labels=['Shares', 'Price', 'EndingMarketValue', 'MarketCap(B)'], axis=1)
+            carbonHeld[year] = df
+        return carbonHeld
