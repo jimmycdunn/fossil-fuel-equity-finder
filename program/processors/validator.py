@@ -18,7 +18,7 @@ class Validator:
         return dfs # to an Analyst instance
 
     def validate_folders(self):
-        print(os.getcwd())
+        #print(os.getcwd())
         with os.scandir(path='..') as it:
             currentFolders = [x.name for x in it] # store name attribute of each os.DirEntry in iterator provided by scandir()
             for folder in self.folderNames:

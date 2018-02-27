@@ -108,34 +108,39 @@ class Analyst:
     def compute_carbon_held(self, matchedDfs):
         # returns a dictionary of dataframes with carbon holdings information for each dataframe in matchedDfs
         carbonHeld = {}
-
         fuels = ['Coal', 'Oil', 'Gas'] # I manually instantiate this but i need to pull it from the column headers
         # find where the columns with units are - those like Name(Units)
         # pull the name from the Name and pull the Units from (Units)
         # populate fuels with Name != Company
         for year in matchedDfs:
             df = matchedDfs[year]
-            # replace '(GtCO2)' with Unit from Units
-            # can i list comprehend a dictionary?
-            # populate dataframe with intensities (tCO2/$ of company market cap)
-            for reserve in [x + '(GtCO2)' for x in fuels]: # replace '(GtCO2)' with Unit from Units
-                # three things here 1) I need to be able to smartly slice fuel len(Unit) 2) Intensity must have the Units / $B b/c i can't assume that it can be simplified
-                # 3) I need to find the appropriate column for marketcap, unless i document it in the data standard
-                df[reserve[:-7] + 'Intensity(tCO2/$)'] = df[reserve] / df['MarketCap(B)']
-                df[reserve + 'Pctile'] =  df[reserve].rank(pct=True) # calculate the percentile of total reserves while we're here
-            # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
-            # populate dataframe with ratio of intensity to holdings (CO2 intensity / $ held)
-            for intensity in [x + 'Intensity(tCO2/$)' for x in fuels]:
-                # three things here 1) I need to be able to smartly slice fuel len(Unit) 2) Intensity must have the Units / $B b/c i can't assume that it can be simplified
-                # 3) I need to find the appropriate column for marketcap, unless i document it in the data standard
-                df[intensity[:-17] + '(tCO2)'] = df[intensity] * df['EndingMarketValue']
-                df[intensity[:-17] + 'DivestRatio'] = df[intensity] / df['EndingMarketValue']
-                df[intensity + 'Pctile'] = df[intensity].rank(pct=True) # calculate percentile of intensities while we're here
-                df[intensity[:-17] + '(tCO2)' + 'Pctile'] = df[intensity[:-17] + '(tCO2)'].rank(pct=True) # calculate percentiles of CO2 held per stock while we're here
+            fuels = self.get_fuels(df) # I'm giving the user flexibility to do fuels by year
+            # dictionary comprehension to modify the names
+            reserves = {k:k+v for k, v in fuels.items()} # I'm not sure i can append v to k so easily but i can try
+
+            for key in reserves:
+                # populate dataframe with intensities (tCO2/$ of company market cap)
+                df[key + 'Intensity' + fuels[key] + '/$B'] = df[reserves[key]] / df['MarketCap(B)'] # fuels[key] is the units of the name of the fuel, market cap has to be in B
+                df[key + 'Pctile'] = df[reserves[key]].rank(pct=True) # calculate the percentile of total reserves while we're here
+                df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue'] # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
+                df[key + '(tCO2)Pctile'] = df[key + '(tCO2)'].rank(pct=True)
+                df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'] / df['EndingMarketValue'] # populate dataframe with ratio of intensity to holdings (CO2 intensity / $ held)
+
             # remove any infinities created by EMV = 0
             df = df.replace(np.inf, np.nan)
-
             # drop financial rows not needed in this view
             df = df.drop(labels=['Shares', 'Price', 'EndingMarketValue', 'MarketCap(B)'], axis=1)
             carbonHeld[year] = df
+
         return carbonHeld
+
+        def get_fuels(self, df):
+            # returns a dictionary(?) with keys as names of fuels and values of units of fuels
+            fuels = {}
+            for col in df.columns:
+                # split the column into name and (unit) at the (
+                splitCol = col.split('(') # this may not work if col is a Index object and not a str; maybe have to use .values[0]
+                name = splitCol[0]
+                unit = splitCol[1]
+                fuels[name] = unit
+            return fuels
