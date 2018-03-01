@@ -15,7 +15,8 @@ class Analyst:
         # this is my intermediate write function that i will replace with final benchmarks
         for year in matchedDfs:
             dataframefile.data = matchedDfs[year]
-            dataframefile.write(year+'assessment') # UPDATE: .write to include a PATH argument
+            dataframefile.write(year+'assessment', path="../carbon_assessment/") # UPDATE: .write to include a PATH argument
+            # filter for flagged carbon rows
 
         targetHeld = self.compute_target_held(matchedDfs)
         # print outputs of targetHeld to commandline for now
@@ -25,7 +26,7 @@ class Analyst:
         carbonHeld = self.compute_carbon_held(matchedDfs)
         for year in carbonHeld:
             dataframefile.data = carbonHeld[year]
-            dataframefile.write(year+'analysis') # UPDATE: .write to include a PATH argument
+            dataframefile.write(year+'analysis', path="../benchmarks/") # UPDATE: .write to include a PATH argument
         # write final assessment to a CSV file
         # DEVELOP: summary statistics to print to commandline
 
@@ -36,6 +37,7 @@ class Analyst:
         matchedDfs = {}
         years = [key[:4] for key in self.dfs]
         for year in years:
+            print(f"{year}")
             # pull that year's equity and carbon data
             # check to make sure there is equity, carbon, and financial data for that year
             try:
@@ -80,6 +82,8 @@ class Analyst:
                         # pull the index matching the stock in matchedDf for updating
                         carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # align indices
                         # pull the financial data
+
+                        
                         financialRow = financial['Stocks'] == equityCompany
                         financialValues = financial[financialRow]
                         financialValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # align indices
@@ -124,23 +128,26 @@ class Analyst:
                 df[key + 'Pctile'] = df[reserves[key]].rank(pct=True) # calculate the percentile of total reserves while we're here
                 df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue'] # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
                 df[key + '(tCO2)Pctile'] = df[key + '(tCO2)'].rank(pct=True)
-                df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'] / df['EndingMarketValue'] # populate dataframe with ratio of intensity to holdings (CO2 intensity / $ held)
+                # df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'].divide(df['EndingMarketValue']) # ZeroDivisionError: float division by zero
 
             # remove any infinities created by EMV = 0
             df = df.replace(np.inf, np.nan)
+            # only save rows that have carbon allocated to them
+            df = df[df.loc[:, "Company(Company)"].notnull()]
             # drop financial rows not needed in this view
             df = df.drop(labels=['Shares', 'Price', 'EndingMarketValue', 'MarketCap(B)'], axis=1)
             carbonHeld[year] = df
 
         return carbonHeld
 
-        def get_fuels(self, df):
-            # returns a dictionary(?) with keys as names of fuels and values of units of fuels
-            fuels = {}
-            for col in df.columns:
+    def get_fuels(self, df):
+        # returns a dictionary(?) with keys as names of fuels and values of units of fuels
+        fuels = {}
+        for col in df.columns:
+            if '(' in col and 'Company' not in col and 'MarketCap' not in col:
                 # split the column into name and (unit) at the (
                 splitCol = col.split('(') # this may not work if col is a Index object and not a str; maybe have to use .values[0]
                 name = splitCol[0]
-                unit = splitCol[1]
+                unit = '(' + splitCol[1] # add leading parenthesis back in
                 fuels[name] = unit
-            return fuels
+        return fuels
