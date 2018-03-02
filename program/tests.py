@@ -11,7 +11,7 @@ from processors.analyst import Analyst
 # make a test for each class
 # COVERAGE
 # DataFrameFile: check
-# Validator:
+# Validator: check
 # Analyst:
 # assess.py:
 
@@ -118,7 +118,7 @@ class TestValidateFiles(unittest.TestCase):
 
 class TestValidateData(unittest.TestCase):
     '''
-    Test the validate_data() function
+    Test the validate_data() function from Validator
     '''
 
     def setUp(self):
@@ -132,3 +132,53 @@ class TestValidateData(unittest.TestCase):
         dataframefile = DataFrameFile()
         with self.assertRaises(ValidatorException):
             classInstance.validate_data(dataframefile)
+
+class TestAnalyze(unittest.TestCase):
+    '''
+    Test the analyze() function from Analyst
+    '''
+
+    def setUp(self):
+        fakeDataFrames = {} # populate dict with keys as years and values as DataFrame objects
+        self.classInstance = Analyst(fakeDataFrames)
+
+    def test_analyze(self):
+        '''
+        Test that the analyze() function sucessfully manipulates the data and writes its output to .csv
+        '''
+        dataframefile = DataFrameFile()
+        result = classInstance.analyze()
+        self.assertEqual(result, answer) #answer is a dictionary of dataframes that are correctly manipulated
+
+class TestMatch(unittest.TestCase):
+    '''
+    Test the match() function from Analyst
+    '''
+
+    def setUp(self):
+        fakeDataFrames = {} # populate dict with keys as years and values as DataFrame objects
+        self.classInstance = Analyst(fakeDataFrames)
+
+    def test_match():
+        '''
+        Test that the match() function successfully matches carbon companies to equity company names
+        '''
+        result = classInstance.match()
+        self.assertEqual(result, answer) #answer is a dictionary of dataframes that have been correctly matched
+
+class TestComputeTargetHeld(unittest.TestCase):
+    '''
+    Test the compute_target_held() function from Analyst
+    '''
+
+    def setUp(self):
+        fakeDataFrames = {} # populate dict with keys as years and values as DataFrame objects
+        fakeMatchedDataFrames = {} # populate dict with keys as years and values
+        self.classInstance = Analyst(fakeDataFrames)
+
+    def test_compute_target_held():
+        '''
+        Test that the compute_target_held() function succesfully computes summary statistics about carbon equity
+        '''
+        result = classInstance.compute_target_held(fakeMatchedDataFrames)
+        self.assertEqual(result, answer) # answer is a dictionary of values that represent the target held percentages by year
