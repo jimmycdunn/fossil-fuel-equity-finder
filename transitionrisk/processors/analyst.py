@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 from fuzzywuzzy import fuzz
 
+
 class AnalystException(Exception):
     pass
+
 
 class Analyst:
     """This guys job is to perform risk computations on the data within data structures"""
@@ -15,7 +17,7 @@ class Analyst:
         # this is my intermediate write function that i will replace with final benchmarks
         for year in matchedDfs:
             dataframefile.data = matchedDfs[year]
-            dataframefile.write(year+'assessment', path="../carbon_assessment/") # UPDATE: .write to include a PATH argument
+            dataframefile.write(year+'assessment', path="../carbon_assessment/")
             # filter for flagged carbon rows
 
         targetHeld = self.compute_target_held(matchedDfs)
@@ -26,7 +28,7 @@ class Analyst:
         carbonHeld = self.compute_carbon_held(matchedDfs)
         for year in carbonHeld:
             dataframefile.data = carbonHeld[year]
-            dataframefile.write(year+'analysis', path="../benchmarks/") # UPDATE: .write to include a PATH argument
+            dataframefile.write(year+'analysis', path="../benchmarks/")
         # write final assessment to a CSV file
         # DEVELOP: summary statistics to print to commandline
 
@@ -65,7 +67,8 @@ class Analyst:
 
                 # iterate through all equityCompanies and store matches of 100% to bestStocks
                 for equityCompany in equityCompanies:
-                    matchRatio = fuzz.token_set_ratio(equityCompany, carbonCompany) # this will match the best equityCompany to the current carbonCompany
+                    # this will match the best equityCompany to the current carbonCompany
+                    matchRatio = fuzz.token_set_ratio(equityCompany, carbonCompany)
                     if matchRatio != 100:
                         continue
                     else:
@@ -79,20 +82,21 @@ class Analyst:
                     carbonValues = carbon[carbonRow]
 
                     for equityCompany in bestStocks:
-                        # pull the index matching the stock in matchedDf for updating
-                        carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # align indices
-                        # pull the financial data
+                        # pull the index matching the stock in matchedDf for updating and align indices
+                        carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index
 
-                        
+                        # pull the financial data
                         financialRow = financial['Stocks'] == equityCompany
                         financialValues = financial[financialRow]
-                        financialValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # align indices
+
+                        # align indices
+                        financialValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index
 
                         # update matchedDf with both carbon and financial data
                         matchedDf.update(carbonValues)
                         matchedDf.update(financialValues)
 
-            matchedDf.update(equity) # index is already aligned to equity
+            matchedDf.update(equity)  # index is already aligned to equity
 
             # append populated matchedDf to the dictionary keyed by year
             matchedDfs[year] = matchedDf
@@ -112,23 +116,27 @@ class Analyst:
     def compute_carbon_held(self, matchedDfs):
         # returns a dictionary of dataframes with carbon holdings information for each dataframe in matchedDfs
         carbonHeld = {}
-        fuels = ['Coal', 'Oil', 'Gas'] # I manually instantiate this but i need to pull it from the column headers
+        fuels = ['Coal', 'Oil', 'Gas']
+        # I manually instantiate this but i need to pull it from the column headers
         # find where the columns with units are - those like Name(Units)
         # pull the name from the Name and pull the Units from (Units)
         # populate fuels with Name != Company
         for year in matchedDfs:
             df = matchedDfs[year]
-            fuels = self.get_fuels(df) # I'm giving the user flexibility to do fuels by year
+            fuels = self.get_fuels(df)  # I'm giving the user flexibility to do fuels by year
             # dictionary comprehension to modify the names
-            reserves = {k:k+v for k, v in fuels.items()} # I'm not sure i can append v to k so easily but i can try
+            reserves = {k: k+v for k, v in fuels.items()}
 
             for key in reserves:
                 # populate dataframe with intensities (tCO2/$ of company market cap)
-                df[key + 'Intensity' + fuels[key] + '/$B'] = df[reserves[key]] / df['MarketCap(B)'] # fuels[key] is the units of the name of the fuel, market cap has to be in B
-                df[key + 'Pctile'] = df[reserves[key]].rank(pct=True) # calculate the percentile of total reserves while we're here
-                df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue'] # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
+                # fuels[key] is the units of the name of the fuel, market cap has to be in B
+                df[key + 'Intensity' + fuels[key] + '/$B'] = df[reserves[key]] / df['MarketCap(B)']
+                # calculate the percentile of total reserves while we're here
+                df[key + 'Pctile'] = df[reserves[key]].rank(pct=True)
+                df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue']
+                # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
                 df[key + '(tCO2)Pctile'] = df[key + '(tCO2)'].rank(pct=True)
-                # df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'].divide(df['EndingMarketValue']) # ZeroDivisionError: float division by zero
+                # df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'].divide(df['EndingMarketValue'])
 
             # remove any infinities created by EMV = 0
             df = df.replace(np.inf, np.nan)
@@ -146,8 +154,8 @@ class Analyst:
         for col in df.columns:
             if '(' in col and 'Company' not in col and 'MarketCap' not in col:
                 # split the column into name and (unit) at the (
-                splitCol = col.split('(') # this may not work if col is a Index object and not a str; maybe have to use .values[0]
+                splitCol = col.split('(')
                 name = splitCol[0]
-                unit = '(' + splitCol[1] # add leading parenthesis back in
+                unit = '(' + splitCol[1]  # add leading parenthesis back in
                 fuels[name] = unit
         return fuels

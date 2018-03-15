@@ -8,11 +8,12 @@ from processors.analyst import Analyst
 
 folderNames = ['equity_data', 'carbon_data', 'financial_data']
 
-def main():
 
+def main():
     # create object instance of dataframefile and validator
     dataframefile = DataFrameFile()
     validator = Validator(folderNames)
+
     # tell validator to use dataframefile to validate all data and read into dfs
     dfs = validator.validate(dataframefile)
 
