@@ -14,7 +14,7 @@ class Analyst:
 
     def analyze(self, dataframefile):
         matchedDfs = self.match()
-        # this is my intermediate write function that i will replace with final benchmarks
+        # this is my intermediate write function that i will replace with benchmark design
         for year in matchedDfs:
             dataframefile.data = matchedDfs[year]
             dataframefile.write(year+'assessment', path="../carbon_assessment/")
@@ -116,8 +116,6 @@ class Analyst:
     def compute_carbon_held(self, matchedDfs):
         # returns a dictionary of dataframes with carbon holdings information for each dataframe in matchedDfs
         carbonHeld = {}
-        fuels = ['Coal', 'Oil', 'Gas']
-        # I manually instantiate this but i need to pull it from the column headers
         # find where the columns with units are - those like Name(Units)
         # pull the name from the Name and pull the Units from (Units)
         # populate fuels with Name != Company
@@ -149,7 +147,7 @@ class Analyst:
         return carbonHeld
 
     def get_fuels(self, df):
-        # returns a dictionary(?) with keys as names of fuels and values of units of fuels
+        # returns a dictionary with keys as names of fuels and values of units of fuels
         fuels = {}
         for col in df.columns:
             if '(' in col and 'Company' not in col and 'MarketCap' not in col:
