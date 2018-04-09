@@ -8,7 +8,7 @@ class AnalystException(Exception):
 
 
 class Analyst:
-    """This guys job is to perform risk computations on the data within data structures"""
+    """Analyst performs risk computations on the data within data structures"""
     def __init__(self, dfs):
         self.dfs = dfs
 
@@ -19,6 +19,8 @@ class Analyst:
             dataframefile.data = matchedDfs[year]
             dataframefile.write(year+'assessment', path="../carbon_assessment/")
             # filter for flagged carbon rows
+
+        # BUILD OUT BENCHMARK CLASS AND CALL ITS METHODS HERE
 
         targetHeld = self.compute_target_held(matchedDfs)
         # print outputs of targetHeld to commandline for now
