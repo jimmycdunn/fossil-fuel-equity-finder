@@ -24,9 +24,9 @@ class TestRead(TestCase):
         '''
         Test that the read() function successfully converts a csv to a pd.DataFrame
         '''
-        text_stream = StringIO("Col1,Col2,Col3\n1,2,3")
+        textStream = StringIO("Col1,Col2,Col3\n1,2,3")
         dff = DataFrameFile()
-        results = dff.read(text_stream)
+        results = dff.read(textStream)
         self.assertIsInstance(results, pd.DataFrame)
         self.assertIsInstance(dff.data, pd.DataFrame)
 
@@ -35,19 +35,28 @@ class TestRead(TestCase):
 
 class TestWrite(TestCase):
     """
-    Docstring
+    Test the write() function from DataFrameFile
     """
 
     @classmethod
     def setUpClass(cls):
+        '''
+        Sets up a temporary directory to store outputs of write() function
+        '''
         cls.tmp_test_dir = "tests/test_tmp_" + str(time.time())
         os.mkdir(cls.tmp_test_dir)
 
     @classmethod
     def tearDownClass(cls):
+        '''
+        Removes temporary directory storing outputs of write() function
+        '''
         os.rmdir(cls.tmp_test_dir)
 
     def test_empty_data_raises_exception(self):
+        '''
+        Tests that write raises DataFrameFileException with an empty data frame
+        '''
         dff = DataFrameFile()
         with self.assertRaises(DataFrameFileException):
             dff.write('fakeFileName')
@@ -55,18 +64,19 @@ class TestWrite(TestCase):
     @mock.patch('transitionrisk.utils.dataframefile.DataFrameFile.get_file_prefix',
                 return_value='file_prefix')
     def test_writes_to_csv(self, mock1):
-        text_stream = StringIO("Col1,Col2,Col3\n1,2,3")
+        '''
+        Tests that write() successfully outputs a csv file with data in it
+        '''
+        textStream = StringIO("Col1,Col2,Col3\n1,2,3")
         dff = DataFrameFile()
-        results = dff.read(text_stream)
-        fileName = "test_filename"
+        results = dff.read(textStream)
+        fileName = "testFilename"
         dff.write(fileName, path=self.tmp_test_dir)
 
         mock1.assert_called_once()
-        full_filename = self.tmp_test_dir+"/"+"file_prefix"+fileName+".csv"
-        with open(full_filename, "r") as fd:
+        fullFilename = self.tmp_test_dir+"/"+"file_prefix"+fileName+".csv"
+        with open(fullFilename, "r") as fd:
             assert fd.readline() == ',Col1,Col2,Col3\n'
             assert fd.readline() == '0,1,2,3\n'
 
-        os.remove(full_filename)
-
-    
+        os.remove(fullFilename)
