@@ -9,8 +9,9 @@ class AnalystException(Exception):
 
 class Analyst:
     """Analyst performs risk computations on the data within data structures"""
-    def __init__(self, dfs):
+    def __init__(self, dfs, cellAddresses):
         self.dfs = dfs
+        self.cellAddresses = cellAddresses
 
     def analyze(self, dataframefile):
         matchedDfs = self.match()
@@ -21,6 +22,8 @@ class Analyst:
             # filter for flagged carbon rows
 
         # BUILD OUT BENCHMARK CLASS AND CALL ITS METHODS HERE
+        #benchmark = Benchmark(matchedDfs, self.cellAddresses)
+        #benchmark.write_benchmarks()
 
         targetHeld = self.compute_target_held(matchedDfs)
         # print outputs of targetHeld to commandline for now
