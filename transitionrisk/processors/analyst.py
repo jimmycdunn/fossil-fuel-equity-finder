@@ -146,7 +146,10 @@ class Analyst:
             # only save rows that have carbon allocated to them
             df = df[df.loc[:, "Company(Company)"].notnull()]
             # drop financial rows not needed in this view
-            df = df.drop(labels=['Shares', 'Price', 'EndingMarketValue', 'MarketCap(B)'], axis=1)
+            # 4/12/18 I'm commenting out this drop step because
+            # 1) I cant guarantee what the equity columns will include
+            # and 2) there is no harm in including all data in the analysis view for now
+            #df = df.drop(labels=['Shares', 'Price', 'EndingMarketValue', 'MarketCap(B)'], axis=1)
             carbonHeld[year] = df
 
         return carbonHeld
