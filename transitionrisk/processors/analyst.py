@@ -18,7 +18,7 @@ class Analyst:
         # this is my intermediate write function that i will replace with benchmark design
         for year in matchedDfs:
             dataframefile.data = matchedDfs[year]
-            dataframefile.write(year+'assessment', path="../carbon_assessment/")
+            dataframefile.write(year+'assessment', path="../data/carbon_assessment/")
             # filter for flagged carbon rows
 
         # BUILD OUT BENCHMARK CLASS AND CALL ITS METHODS HERE
@@ -33,7 +33,7 @@ class Analyst:
         carbonHeld = self.compute_carbon_held(matchedDfs)
         for year in carbonHeld:
             dataframefile.data = carbonHeld[year]
-            dataframefile.write(year+'analysis', path="../benchmarks/")
+            dataframefile.write(year+'analysis', path="../data/benchmarks/")
         # write final assessment to a CSV file
         # DEVELOP: summary statistics to print to commandline
 
@@ -42,9 +42,9 @@ class Analyst:
         # i.e. dfs['2016carbon_data']
         # pull the first 4 chars of the key and store to keep track of how many years
         matchedDfs = {}
-        years = [key[:4] for key in self.dfs]
+        years = set([key[:4] for key in self.dfs])
+        print(years)
         for year in years:
-            print(f"{year}")
             # pull that year's equity and carbon data
             # check to make sure there is equity, carbon, and financial data for that year
             try:
@@ -87,22 +87,20 @@ class Analyst:
                     carbonValues = carbon[carbonRow]
 
                     for equityCompany in bestStocks:
-                        # pull the index matching the stock in matchedDf for updating and align indices
-                        carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index
-
-                        # pull the financial data
-                        financialRow = financial['Stocks'] == equityCompany
+                        # match financial data before replacing index in carbon values
+                        currentCarbonCompany = carbonValues['Company(Company)'].values[0]
+                        financialRow = financial['Company'] == currentCarbonCompany
                         financialValues = financial[financialRow]
-
-                        # align indices
+                        # pull the index matching the stock in matchedDf for updating and align indices
+                        carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # ValueError
+                        # the above error occurs when a company has a row in both the Coal AND Oil and Gas columns
+                        # for now, I'm concatenating values in the CSV itself but think about generalizing
                         financialValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index
-
                         # update matchedDf with both carbon and financial data
                         matchedDf.update(carbonValues)
                         matchedDf.update(financialValues)
 
             matchedDf.update(equity)  # index is already aligned to equity
-
             # append populated matchedDf to the dictionary keyed by year
             matchedDfs[year] = matchedDf
             print("It's working...")
