@@ -20,7 +20,7 @@ def main():
     # create analyst object and pass in dfs to be written out to master spreadsheets
     analyst = Analyst(dfs, cellAddresses)
     analyst.analyze(dataframefile)
-
+    print("Congratulations, the tool has completed the analysis!")
 
 if __name__ == "__main__":
     main()

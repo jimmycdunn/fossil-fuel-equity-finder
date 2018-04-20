@@ -18,7 +18,7 @@ class Validator:
         return dfs  # to an Analyst instance
 
     def validate_folders(self):
-        with os.scandir(path='../data') as it:
+        with os.scandir(path='./data') as it: # try ./data
             # store name attribute of each os.DirEntry in iterator provided by scandir()
             currentFolders = [x.name for x in it]
             for folder in self.folderNames:
@@ -29,7 +29,7 @@ class Validator:
 
     def validate_files(self):
         for folder in self.folderNames:
-            with os.scandir(path='../data/'+folder) as it:
+            with os.scandir(path='./data/'+folder) as it:
                 currentFiles = [x.name for x in it]  # store name attributes of all files in a folder
                 for fileName in currentFiles:
                     if not fileName.endswith(".csv"):  # validate filetype is a csv
@@ -44,10 +44,10 @@ class Validator:
         # dfs is a dictionary of dataframes
         dfs = {}
         for folder in self.folderNames:
-            with os.scandir(path='../data/'+folder) as it:
+            with os.scandir(path='./data/'+folder) as it:
                 currentFiles = [x.name for x in it]  # store name attributes of all files in a folders
                 for fileName in currentFiles:
-                    df = dataframefile.read(os.path.join('../data/', folder, fileName))
+                    df = dataframefile.read(os.path.join('./data/', folder, fileName))
                     # check the column titles
                     for col in df.columns:
                         if type(col) is not str:  # ensure column names are string types
