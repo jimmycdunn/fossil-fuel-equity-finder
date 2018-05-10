@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import date
+from datetime import datetime, date
 
 
 class DataFrameFileException(Exception):
@@ -27,4 +27,5 @@ class DataFrameFile:
 
     @staticmethod
     def get_file_prefix(today=date.today()):
-        return ''.join([str(i) for i in today.timetuple()[0:3]])
+        #return ''.join([str(i) for i in today.timetuple()[0:3]])
+        return datetime.strftime(today, "%Y%m%d")

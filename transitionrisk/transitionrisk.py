@@ -7,7 +7,6 @@ from processors.validator import Validator
 from processors.analyst import Analyst
 
 folderNames = ['equity_data', 'carbon_data', 'financial_data']
-cellAddresses = {}
 
 def main():
     # create object instance of dataframefile and validator
@@ -18,9 +17,9 @@ def main():
     dfs = validator.validate(dataframefile)
 
     # create analyst object and pass in dfs to be written out to master spreadsheets
-    analyst = Analyst(dfs, cellAddresses)
+    analyst = Analyst(dfs)
     analyst.analyze(dataframefile)
-
+    print("Congratulations, the tool has completed the analysis!")
 
 if __name__ == "__main__":
     main()

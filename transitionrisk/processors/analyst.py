@@ -9,21 +9,16 @@ class AnalystException(Exception):
 
 class Analyst:
     """Analyst performs risk computations on the data within data structures"""
-    def __init__(self, dfs, cellAddresses):
+    def __init__(self, dfs):
         self.dfs = dfs
-        self.cellAddresses = cellAddresses
 
     def analyze(self, dataframefile):
         matchedDfs = self.match()
         # this is my intermediate write function that i will replace with benchmark design
         for year in matchedDfs:
             dataframefile.data = matchedDfs[year]
-            dataframefile.write(year+'assessment', path="../data/carbon_assessment/")
+            dataframefile.write(year+'assessment', path="./data/carbon_assessment/")
             # filter for flagged carbon rows
-
-        # BUILD OUT BENCHMARK CLASS AND CALL ITS METHODS HERE
-        #benchmark = Benchmark(matchedDfs, self.cellAddresses)
-        #benchmark.write_benchmarks()
 
         targetHeld = self.compute_target_held(matchedDfs)
         # print outputs of targetHeld to commandline for now
@@ -33,7 +28,7 @@ class Analyst:
         carbonHeld = self.compute_carbon_held(matchedDfs)
         for year in carbonHeld:
             dataframefile.data = carbonHeld[year]
-            dataframefile.write(year+'analysis', path="../data/benchmarks/")
+            dataframefile.write(year+'analysis', path="./data/benchmarks/")
         # write final assessment to a CSV file
         # DEVELOP: summary statistics to print to commandline
 
@@ -93,7 +88,7 @@ class Analyst:
                         financialValues = financial[financialRow]
                         # pull the index matching the stock in matchedDf for updating and align indices
                         carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # ValueError
-                        # the above error occurs when a company has a row in both the Coal AND Oil and Gas columns
+                        # the above error occurs when a company has a duplicate row in both the Coal AND Oil and Gas
                         # for now, I'm concatenating values in the CSV itself but think about generalizing
                         financialValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index
                         # update matchedDf with both carbon and financial data
@@ -114,6 +109,7 @@ class Analyst:
             totalEquityValue = df['EndingMarketValue'].sum()
             targetEquityValue = df.loc[df['Company(Company)'].notnull(), 'EndingMarketValue'].sum()
             targetHeld[year] = targetEquityValue / totalEquityValue
+
         return targetHeld
 
     def compute_carbon_held(self, matchedDfs):
@@ -132,17 +128,20 @@ class Analyst:
                 # populate dataframe with intensities (tCO2/$ of company market cap)
                 # fuels[key] is the units of the name of the fuel, market cap has to be in B
                 df[key + 'Intensity' + fuels[key] + '/$B'] = df[reserves[key]] / df['MarketCap(B)']
-                # calculate the percentile of total reserves while we're here
-                df[key + 'Pctile'] = df[reserves[key]].rank(pct=True)
-                df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue']
                 # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
-                df[key + '(tCO2)Pctile'] = df[key + '(tCO2)'].rank(pct=True)
-                # df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'].divide(df['EndingMarketValue'])
-
+                df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue']
+                # calculate the percentile of total reserves while we're here
             # remove any infinities created by EMV = 0
             df = df.replace(np.inf, np.nan)
             # only save rows that have carbon allocated to them
             df = df[df.loc[:, "Company(Company)"].notnull()]
+            # address companies with multiple stock options here
+            df = self.combine_multiple_stocks(df)
+
+            for key in reserves:
+                df[key + 'Pctile'] = df[reserves[key]].rank(pct=True)
+                df[key + '(tCO2)Pctile'] = df[key + '(tCO2)'].rank(pct=True)
+                # df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'].divide(df['EndingMarketValue'])
             # drop financial rows not needed in this view
             # 4/12/18 I'm commenting out this drop step because
             # 1) I cant guarantee what the equity columns will include
@@ -163,3 +162,26 @@ class Analyst:
                 unit = '(' + splitCol[1]  # add leading parenthesis back in
                 fuels[name] = unit
         return fuels
+
+    def combine_multiple_stocks(self, df):
+        # returns an analysis dataframe with multiple stock rows combined
+        # into one company row to aggregate holdings across multiple
+        # options in a company
+        multipleStockCompanies = set(df[df.duplicated(subset="Company")].Company)
+        for duplicate in multipleStockCompanies:
+            combinedStocksCompany = pd.DataFrame()
+            allCompanyStocks = df[df.Company == duplicate]
+            keepSame = ["Company", "MarketCap(B)", "Stocks", "CoalIntensity(GtCO2)/$B",
+                        "OilIntensity(GtCO2)/$B", "GasIntensity(GtCO2)/$B"]
+            sumColumns = ["EndingMarketValue", "Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)"]
+
+            for col in keepSame:
+                combinedStocksCompany.loc[0,col] = allCompanyStocks.loc[:, col].values[0]
+
+            for col in sumColumns:
+                combinedStocksCompany.loc[0,col] = allCompanyStocks.loc[:, col].sum()
+
+            df.drop(allCompanyStocks.index, inplace=True)
+            df = df.append(combinedStocksCompany, ignore_index=True)
+
+        return df
