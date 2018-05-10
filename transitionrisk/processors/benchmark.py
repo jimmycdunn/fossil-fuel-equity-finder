@@ -4,7 +4,12 @@ import os
 from transitionrisk.utils.dataframefile import DataFrameFile
 from datetime import datetime
 from IPython.display import display, HTML
-
+import matplotlib.pyplot as plt
+import mpld3
+from mpld3 import plugins
+from mpld3.utils import get_id
+import collections
+import matplotlib
 from transitionrisk.utils.dataframefile import DataFrameFile
 
 class BenchmarkException(Exception):
@@ -190,7 +195,7 @@ class Benchmark:
                                     coalReserves, oilReserves, gasReserves, totalReserves]
                                     , axis=1)
         self.aggregateTable = aggregateTable
-        return display(aggregateTable)
+        return aggregateTable
 
     def show_top(self, rows=5, sort="EMV"):
         sortMap = {
@@ -204,3 +209,120 @@ class Benchmark:
             print(f"Top {rows} sorted by {sortMap[sort]} for {year}")
             top5 = self.data[year].loc[:, columns].sort_values(by=sortMap[sort], ascending=False).iloc[0:rows, :]
             display(top5)
+
+    def plot_fossil_fuel_equity(self):
+
+        N = len(self.aggregateTable.index)
+        x = self.aggregateTable.loc[:, "Fossil Fuel Equity"]
+
+        fig, ax = plt.subplots()
+
+        index = np.arange(N)
+        width = 0.35
+
+        chart = ax.bar(index, x, width)
+        ax.set_xlabel("Year")
+        ax.set_ylabel("USD")
+        ax.set_title("Dollars invested in fossil fuel companies by year")
+        ax.set_xticks(index)
+        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.get_yaxis().set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+
+        return plt.show()
+
+    def plot_fossil_fuel_equity_fuel_types(self):
+        N = len(self.aggregateTable.index)
+        coal = self.aggregateTable.loc[:, "Coal Equity"]
+        oil = self.aggregateTable.loc[:, "Oil Equity"]
+        gas = self.aggregateTable.loc[:, "Gas Equity"]
+
+        fig, ax = plt.subplots()
+
+        index = np.arange(N)
+        width = 0.35
+
+        x1 = ax.bar(index, coal, width)
+        x2 = ax.bar(index, oil, width, bottom=coal)
+        x3 = ax.bar(index, gas, width, bottom=coal+oil)
+
+        ax.set_xlabel("Year")
+        ax.set_ylabel("USD")
+        ax.set_title("Dollars invested in fossil fuel companies by year by fuel type")
+        ax.set_xticks(index)
+        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.get_yaxis().set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+
+        ax.legend(handles=(x1, x2, x3), labels=("Coal", "Oil", "Gas"), loc="right", bbox_to_anchor=(1.15 ,0.5))
+        return plt.show();
+
+    def plot_reserves(self):
+        N = len(self.aggregateTable.index)
+        x = self.aggregateTable.loc[:, "Total Reserves (tCO2)"]
+        fig, ax = plt.subplots()
+
+        index = np.arange(N)
+        width = 0.35
+
+        chart = ax.bar(index, x, width)
+        ax.set_xlabel("Year")
+        ax.set_ylabel("Tonnes CO2 equivalent")
+        ax.set_title("Carbon reserves invested in")
+        ax.set_xticks(index)
+        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.get_yaxis().set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ",")))
+
+        return plt.show()
+
+    def plot_reserves_fuel_type(self):
+        N = len(self.aggregateTable.index)
+        coal = self.aggregateTable.loc[:, "Coal Reserves (tCO2)"]
+        oil = self.aggregateTable.loc[:, "Oil Reserves (tCO2)"]
+        gas = self.aggregateTable.loc[:, "Gas Reserves (tCO2)"]
+
+        fig, ax = plt.subplots()
+
+        index = np.arange(N)
+        width = 0.35
+
+        x1 = ax.bar(index, coal, width)
+        x2 = ax.bar(index, oil, width, bottom=coal)
+        x3 = ax.bar(index, gas, width, bottom=coal+oil)
+
+        ax.set_xlabel("Year")
+        ax.set_ylabel("Tonnes CO2 equivalent")
+        ax.set_title("Carbon reserves invested in by year by fuel type")
+        ax.set_xticks(index)
+        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.get_yaxis().set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+
+        ax.legend(handles=(x1, x2, x3), labels=("Coal", "Oil", "Gas"), loc="right", bbox_to_anchor=(1.15 ,0.5))
+        return plt.show();
+
+    def scatterplot(self, year):
+        assert year in self.years
+        df = self.data[year]
+        reserve = df.loc[:, ["Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)"]].sum(axis=1)
+        emv = df.loc[:, ["EndingMarketValue"]]
+
+        N = len(df.index)
+        fig, ax = plt.subplots()
+
+        sp = ax.scatter(emv, reserve)
+
+        ax.set_xlabel("Equity Invested (USD)")
+        ax.set_ylabel("Carbon Reserves (tCO2)")
+        ax.set_title("Carbon reserves invested in by year by fuel type")
+        ax.get_xaxis().set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+        ax.get_yaxis().set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
+
+        labels = df.loc[:, "Company"].values.tolist()
+        tooltip = mpld3.plugins.PointLabelTooltip(sp, labels=labels)
+        mpld3.plugins.connect(fig, tooltip)
+
+        return mpld3.display()
