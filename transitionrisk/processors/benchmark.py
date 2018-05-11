@@ -40,7 +40,7 @@ class Benchmark:
         elif switch == "Equity":
             columns2 = ["Stocks", "EndingMarketValue"] #any other columns you include will be preserved but won't be operated on
             data2 = {
-                "Stocks" : ["SM GAS CLASS A", "MORE OIL", "DCT COAL OPTIONS", "BST COAL", "BTTR COAL 2"],
+                "Stocks" : ["SM GAS CLASS A", "MORE OIL", "DCT COAL OPTIONS", "BST COAL", "CLOTHES R US"],
                 "EndingMarketValue" : [54987651.0, 13654977.0, 546879852.0, 1124568.0, 1549865.0]
             }
             df = pd.DataFrame(data2, columns=columns2)
@@ -81,7 +81,7 @@ class Benchmark:
             print(f"{year}")
             print(f"You owned investments in {numberOfCompanies} fossil fuel companies:")
             companySentence = ", ".join(companyNames)
-            print(f"{companySentence}")
+            print(f"{companySentence}\n")
 
     def get_total_equity(self):
         # read in the equity dataframes
