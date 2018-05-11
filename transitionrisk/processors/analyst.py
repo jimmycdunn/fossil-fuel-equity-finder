@@ -22,8 +22,9 @@ class Analyst:
 
         targetHeld = self.compute_target_held(matchedDfs)
         # print outputs of targetHeld to commandline for now
-        for i in targetHeld:
-            print(f"{i} {targetHeld[i]}%")
+        for year in targetHeld:
+            percentage = round(targetHeld[year] * 100, 2)
+            print(f"In {year}, fossil fuel stocks comprised {percentage}% of your individual equity portfolio.")
 
         carbonHeld = self.compute_carbon_held(matchedDfs)
         for year in carbonHeld:
@@ -38,7 +39,7 @@ class Analyst:
         # pull the first 4 chars of the key and store to keep track of how many years
         matchedDfs = {}
         years = set([key[:4] for key in self.dfs])
-        print(years)
+        print(f"The years of data being matched and analyzed are: {years}")
         for year in years:
             # pull that year's equity and carbon data
             # check to make sure there is equity, carbon, and financial data for that year
@@ -98,7 +99,7 @@ class Analyst:
             matchedDf.update(equity)  # index is already aligned to equity
             # append populated matchedDf to the dictionary keyed by year
             matchedDfs[year] = matchedDf
-            print("It's working...")
+            print(f"{year} complete...")
         return matchedDfs
 
     def compute_target_held(self, matchedDfs):
