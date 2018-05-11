@@ -315,7 +315,7 @@ class Benchmark:
 
         ax.set_xlabel("Equity Invested (USD)")
         ax.set_ylabel("Carbon Reserves (tCO2)")
-        ax.set_title("Carbon reserves invested in by year by fuel type")
+        ax.set_title(f"Invested Fossil Fuel Companies in {year}")
         ax.get_xaxis().set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
         ax.get_yaxis().set_major_formatter(
