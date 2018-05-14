@@ -225,7 +225,7 @@ class Benchmark:
         ax.set_ylabel("USD")
         ax.set_title("Dollars invested in fossil fuel companies by year")
         ax.set_xticks(index)
-        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.set_xticklabels(self.aggregateTable.index.values.tolist())
         ax.get_yaxis().set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 
@@ -250,7 +250,7 @@ class Benchmark:
         ax.set_ylabel("USD")
         ax.set_title("Dollars invested in fossil fuel companies by year by fuel type")
         ax.set_xticks(index)
-        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.set_xticklabels(self.aggregateTable.index.values.tolist())
         ax.get_yaxis().set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 
@@ -270,7 +270,7 @@ class Benchmark:
         ax.set_ylabel("Tonnes CO2 equivalent")
         ax.set_title("Carbon reserves invested in")
         ax.set_xticks(index)
-        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.set_xticklabels(self.aggregateTable.index.values.tolist())
         ax.get_yaxis().set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ",")))
 
@@ -295,7 +295,7 @@ class Benchmark:
         ax.set_ylabel("Tonnes CO2 equivalent")
         ax.set_title("Carbon reserves invested in by year by fuel type")
         ax.set_xticks(index)
-        ax.set_xticklabels(set(self.aggregateTable.index))
+        ax.set_xticklabels(self.aggregateTable.index.values.tolist())
         ax.get_yaxis().set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 

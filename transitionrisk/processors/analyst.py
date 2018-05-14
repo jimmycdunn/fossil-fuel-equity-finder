@@ -69,8 +69,18 @@ class Analyst:
                 # iterate through all equityCompanies and store matches of 100% to bestStocks
                 for equityCompany in equityCompanies:
                     # this will match the best equityCompany to the current carbonCompany
-                    matchRatio = fuzz.token_set_ratio(equityCompany, carbonCompany)
-                    if matchRatio != 100:
+                    #standardize letter case
+                    # standardize punctuation
+                    # standardize whitespace
+                    # r1 = equityCompany.lstrip().strip()
+                    # r1 = "".join(r1)
+                    # r2 = carbonCompany.lstrip().strip()
+                    # r2 = "".join(r2)
+                    # matchRatio = fuzz.partial_token_set_ratio(r1, r2)
+                    matchRatio = fuzz.partial_token_set_ratio(equityCompany, carbonCompany)
+                    thresh = 90
+                    print(f"Equity {equityCompany} v. Carbon {carbonCompany} {matchRatio}")
+                    if matchRatio < thresh:
                         continue
                     else:
                         bestStocks.append(equityCompany)

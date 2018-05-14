@@ -1,0 +1,21 @@
+Company(Company),Coal(GtCO2),Oil(GtCO2),Gas(GtCO2)
+CONSOL Energy,2,0,0
+Arch Coal,7,0,0
+Cloud Peak Energy,12,0,0
+Foresight Energy,8,0,0
+Natural Resource Partners,20,0,0
+SunCoke Energy,1,0,0
+Coal India,40,0,0
+BHP Billiton Limited,11,1,2
+Shenhua Group,25,0,0
+Anglo American PLC,14,0,0
+Rosneft,0,8,2
+BP,0,4,3
+ExonnMobil,0,5,5
+Chevron,0,3,2
+Royal Dutch Shell,0,2,2
+ConocoPhillips,0,2,1
+ENI,0,1,1
+Sinopec,0,1,0.5
+BG,0,0.5,0.5
+Hess,0,0.3,0.1
