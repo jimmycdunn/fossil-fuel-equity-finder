@@ -79,7 +79,6 @@ class Analyst:
                     # matchRatio = fuzz.partial_token_set_ratio(r1, r2)
                     matchRatio = fuzz.partial_token_set_ratio(equityCompany, carbonCompany)
                     thresh = 90
-                    print(f"Equity {equityCompany} v. Carbon {carbonCompany} {matchRatio}")
                     if matchRatio < thresh:
                         continue
                     else:
