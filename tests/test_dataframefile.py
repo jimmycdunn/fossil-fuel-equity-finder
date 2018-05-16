@@ -8,7 +8,7 @@ import os
 
 import pandas as pd
 
-from transitionrisk.utils.dataframefile import (
+from ffequity.utils.dataframefile import (
     DataFrameFile,
     DataFrameFileException,
 )

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import os
-from transitionrisk.utils.dataframefile import DataFrameFile
+from ffequity.utils.dataframefile import DataFrameFile
 from datetime import datetime
 from IPython.display import display, HTML
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from mpld3 import plugins
 from mpld3.utils import get_id
 import collections
 import matplotlib
-from transitionrisk.utils.dataframefile import DataFrameFile
+from ffequity.utils.dataframefile import DataFrameFile
 
 class BenchmarkException(Exception):
     pass

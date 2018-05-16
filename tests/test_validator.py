@@ -8,7 +8,7 @@ import os
 
 import pandas as pd
 
-from transitionrisk.utils.validator import (
+from ffequity.utils.validator import (
     Validator,
     ValidatorException,
 )
