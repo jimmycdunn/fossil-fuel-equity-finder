@@ -10,11 +10,15 @@ Follow the instructions listed here: [https://www.anaconda.com/download/](https:
 Launch Anaconda Prompt. It will default to the directory where you've installed Anaconda so you shouldn't need to worry about moving it. At the command line copy and paste the following exactly to install the third party libraries this tool uses.
 
 Instructions for installing fuzzywuzzy: [https://anaconda.org/conda-forge/fuzzywuzzy](https://anaconda.org/conda-forge/fuzzywuzzy)
+
 Copy-Paste: conda install -c conda-forge fuzzywuzzy
+
 Press "Enter" and Anaconda should install the package.
 
 Instructions for installing mpld3: [https://anaconda.org/conda-forge/mpld3](https://anaconda.org/conda-forge/mpld3)
+
 Copy-Paste: conda install -c conda-forge mpld3
+
 Press "Enter" and Anaconda should install the package.
 
 # Launching Anaconda Navigator and Jupyter Notebook
