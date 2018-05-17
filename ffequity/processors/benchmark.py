@@ -64,7 +64,7 @@ class Benchmark:
         data = {}
         with os.scandir(path="./data/benchmarks") as it:
             currentFiles = [x.name for x in it]  # store name attributes of all files in a folder
-            recentDate = max([datetime.strptime(fileName[:8], "%Y%m%d") for fileName in currentFiles] if fileName != ".gitignore")
+            recentDate = max([datetime.strptime(fileName[:8], "%Y%m%d") for fileName in currentFiles if fileName != ".gitignore"])
             recentDate = datetime.strftime(recentDate, "%Y%m%d")
             for fileName in currentFiles:
                 if recentDate in fileName:
