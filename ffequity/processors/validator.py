@@ -30,7 +30,7 @@ class Validator:
     def validate_files(self):
         for folder in self.folderNames:
             with os.scandir(path='./data/'+folder) as it:
-                currentFiles = [x.name for x in it]  # store name attributes of all files in a folder
+                currentFiles = [x.name for x in it if x.name != ".gitignore"]  # store name attributes of all files in a folder
                 for fileName in currentFiles:
                     if not fileName.endswith(".csv"):  # validate filetype is a csv
                         raise ValidatorException(f"File Type is not csv: {fileName}")
@@ -45,7 +45,7 @@ class Validator:
         dfs = {}
         for folder in self.folderNames:
             with os.scandir(path='./data/'+folder) as it:
-                currentFiles = [x.name for x in it]  # store name attributes of all files in a folders
+                currentFiles = [x.name for x in it if x.name != ".gitignore"]  # store name attributes of all files in a folders
                 for fileName in currentFiles:
                     df = dataframefile.read(os.path.join('./data/', folder, fileName))
                     # check the column titles

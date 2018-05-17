@@ -2,4 +2,6 @@
 venv/
 *.xlsx
 /data/carbon_assessment/*
-/data/benchmarks/*
+/data/carbon_data/*
+/data/equity_data/*
+/data/financial_data/*

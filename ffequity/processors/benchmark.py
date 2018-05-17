@@ -55,7 +55,6 @@ class Benchmark:
 
         else:
             print("Please select a sample table to view.")
-
         return display(df)
 
     # pull the data frames that were written out by Analyst
@@ -88,7 +87,7 @@ class Benchmark:
         dataframefile = DataFrameFile()
         data = {}
         with os.scandir(path="./data/equity_data") as it:
-            currentFiles = [x.name for x in it]  # store name attributes of all files in a folder
+            currentFiles = [x.name for x in it if x.name != ".gitignore"]  # store name attributes of all files in a folder
             for fileName in currentFiles:
                 df = dataframefile.read(os.path.join("./data/equity_data/", fileName))
                 data[fileName[0:4]] = df
