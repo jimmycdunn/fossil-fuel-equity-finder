@@ -136,7 +136,7 @@ class Benchmark:
             totalReservesOil = self.data[year].loc[oilRows, ["Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)"]].sum(axis=1)
             oilEmv[year] = ((self.data[year].loc[oilRows, "Oil(tCO2)"] / totalReservesOil)
                               * self.data[year].loc[oilRows, "EndingMarketValue"])
-            totalReservesGas = self.data[year].loc[gasRows, ["(tCO2)", "Oil(tCO2)", "Gas(tCO2)"]].sum(axis=1)
+            totalReservesGas = self.data[year].loc[gasRows, ["Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)"]].sum(axis=1)
             gasEmv[year] = ((self.data[year].loc[gasRows, "Gas(tCO2)"] / totalReservesGas)
                               * self.data[year].loc[gasRows, "EndingMarketValue"])
 
