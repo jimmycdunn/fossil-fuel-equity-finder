@@ -48,7 +48,7 @@ class Benchmark:
         elif switch == "Financial":
             columns3 = ["Company", "MarketCap(B)"] # make sure you convert whatever the listed market caps are to B
             data3 = {
-                "Company" : ["Best Coal", "Some Gas", "More Oil", "Better Coal", "Decent Coal"],
+                "Company(Company)" : ["Best Coal", "Some Gas", "More Oil", "Better Coal", "Decent Coal"],
                 "MarketCap(B)" : [25.8, 50.2, 44.3, 10.0, 0.5]
             }
             df = pd.DataFrame(data3, columns=columns3)
