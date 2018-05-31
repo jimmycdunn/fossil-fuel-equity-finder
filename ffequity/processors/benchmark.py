@@ -81,10 +81,10 @@ class Benchmark:
         data = {}
         with os.scandir(path="./data/benchmarks") as it:
             currentFiles = [x.name for x in it]  # store name attributes of all files in a folder
-            recentDate = max([datetime.strptime(fileName[:8], "%Y%m%d") for fileName in currentFiles if fileName != ".gitignore"])
-            recentDate = datetime.strftime(recentDate, "%Y%m%d")
+            # recentDate = max([datetime.strptime(fileName[:8], "%Y%m%d") for fileName in currentFiles if fileName != ".gitignore"])
+            # recentDate = datetime.strftime(recentDate, "%Y%m%d")
             for fileName in currentFiles:
-                if recentDate in fileName:
+                if fileName != ".gitignore":
                     df = dataframefile.read(os.path.join('./data/benchmarks/', fileName))
                     data[fileName[:4]] = df
         assert len(data.keys()) == len(self.years)
@@ -292,7 +292,7 @@ class Benchmark:
             "OIL" : "Oil(tCO2)",
             "GAS" : "Gas(tCO2)"
         }
-        columns = ["Company", "Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)", "EndingMarketValue"]
+        columns = ["Company(Company)", "Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)", "EndingMarketValue"]
         for year in self.years:
             print(f"Top {rows} sorted by {sortMap[sort]} for {year}")
             top5 = self.data[year].loc[:, columns].sort_values(by=sortMap[sort], ascending=False).iloc[0:rows, :]
@@ -409,7 +409,7 @@ class Benchmark:
         ax.get_yaxis().set_major_formatter(
             matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
 
-        labels = df.loc[:, "Company"].values.tolist()
+        labels = df.loc[:, "Company(Company)"].values.tolist()
         tooltip = mpld3.plugins.PointLabelTooltip(sp, labels=labels)
         mpld3.plugins.connect(fig, tooltip)
 
