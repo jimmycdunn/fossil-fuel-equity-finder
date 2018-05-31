@@ -23,7 +23,10 @@ class DataFrameFile:
             raise DataFrameFileException("No data to write.")
         if not path.endswith('/'):
             path += '/'
-        self.data.to_csv(path + self.get_file_prefix() + fileName + '.csv')  # make sure fileName is correct
+
+        self.data.to_csv(path + fileName + '.csv')  # make sure fileName is correct
+        # commenting out file prefixes with run date for readability
+        #self.data.to_csv(path + self.get_file_prefix() + fileName + '.csv')  # make sure fileName is correct
 
     @staticmethod
     def get_file_prefix(today=date.today()):

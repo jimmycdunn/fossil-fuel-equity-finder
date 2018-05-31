@@ -58,6 +58,24 @@ class Benchmark:
         return display(df)
 
     # pull the data frames that were written out by Analyst
+
+    # modify get_tables to be get_equity_tables from /assessment
+    def get_equity_tables(self):
+        dataframefile = DataFrameFile()
+        data = {}
+        with os.scandir(path="./data/assessment") as it:
+            currentFiles = [x.name for x in it]  # store name attributes of all files in a folder
+            # commenting out recent date because I removed that function
+            # recentDate = max([datetime.strptime(fileName[:8], "%Y%m%d") for fileName in currentFiles if fileName != ".gitignore"])
+            # recentDate = datetime.strftime(recentDate, "%Y%m%d")
+            for fileName in currentFiles:
+                if fileName != ".gitignore":
+                    df = dataframefile.read(os.path.join('./data/assessment/', fileName))
+                    data[fileName[:4]] = df
+        assert len(data.keys()) == len(self.years)
+        self.data = data
+        return self.data
+
     def get_tables(self):
         dataframefile = DataFrameFile()
         data = {}
@@ -68,14 +86,15 @@ class Benchmark:
             for fileName in currentFiles:
                 if recentDate in fileName:
                     df = dataframefile.read(os.path.join('./data/benchmarks/', fileName))
-                    data[fileName[8:12]] = df
+                    data[fileName[:4]] = df
         assert len(data.keys()) == len(self.years)
         self.data = data
         return self.data
 
     def company_names(self):
         for year in self.years:
-            companyNames = self.data[year]["Company"].values
+            matchedCompanies = self.data[year].loc[:, "Company(Company)"].notnull()
+            companyNames = set(self.data[year].loc[matchedCompanies, "Company(Company)"].values)
             numberOfCompanies = len(companyNames)
             print(f"{year}")
             print(f"You owned investments in {numberOfCompanies} fossil fuel companies:")
@@ -94,8 +113,78 @@ class Benchmark:
         assert len(data.keys()) == len(self.years)
         totalEquity = {}
         for year in data:
-            totalEquity[year] = data[year]["EndingMarketValue"].sum()
+            totalEquity[year] = float(data[year]["EndingMarketValue"].sum())
         return totalEquity
+
+    def aggregate_equity_table(self):
+        # make Total Individual Equity column
+        totalEquity = self.get_total_equity()
+        totalEquity = pd.DataFrame.from_dict(data=totalEquity, orient="index")
+        totalEquity.columns = ["Total Individual Equity"]
+
+        # make the aggregate columns with Year
+        aggregateColumns = ["Year"]
+        aggregateTable = pd.DataFrame(columns=aggregateColumns)
+        aggregateTable.loc[:, aggregateColumns] = 0
+        aggregateTable.loc[:, "Year"] = self.data.keys()
+        aggregateTable.set_index("Year", inplace=True)
+
+        # initiate table to aggregate fossil fuel equity by fuel type
+        fossilFuelEquity = pd.DataFrame()
+
+        row = 0
+        for year in self.data:
+            fossilFuelEquity.loc[row, "Year"] = year
+            fossilFuelRows = self.data[year].loc[:, "Company(Company)"].notnull()
+            fossilFuelEquity.loc[row, "Fossil Fuel Equity"] = self.data[year].loc[fossilFuelRows, "EndingMarketValue"].sum()
+            row += 1
+        fossilFuelEquity.set_index("Year", inplace=True)
+
+        # dollars by fuel type
+        coalEmv = {}
+        oilEmv = {}
+        gasEmv = {}
+
+        for year in self.data:
+            coalRows = self.data[year].loc[:, "Coal(GtCO2)"] > 0
+            oilRows = self.data[year].loc[:, "Oil(GtCO2)"] > 0
+            gasRows = self.data[year].loc[:, "Gas(GtCO2)"] > 0
+            # to allocate dollars by fuel type, divide fuel type reserve by sum of total reserves and multiply by EMV
+            totalReservesCoal = self.data[year].loc[coalRows, ["Coal(GtCO2)", "Oil(GtCO2)", "Gas(GtCO2)"]].sum(axis=1)
+            coalEmv[year] = ((self.data[year].loc[coalRows, "Coal(GtCO2)"] / totalReservesCoal)
+                              * self.data[year].loc[coalRows, "EndingMarketValue"])
+            totalReservesOil = self.data[year].loc[oilRows, ["Coal(GtCO2)", "Oil(GtCO2)", "Gas(GtCO2)"]].sum(axis=1)
+            oilEmv[year] = ((self.data[year].loc[oilRows, "Oil(GtCO2)"] / totalReservesOil)
+                              * self.data[year].loc[oilRows, "EndingMarketValue"])
+            totalReservesGas = self.data[year].loc[gasRows, ["Coal(GtCO2)", "Oil(GtCO2)", "Gas(GtCO2)"]].sum(axis=1)
+            gasEmv[year] = ((self.data[year].loc[gasRows, "Gas(GtCO2)"] / totalReservesGas)
+                              * self.data[year].loc[gasRows, "EndingMarketValue"])
+
+        coalEquity = pd.DataFrame()
+        oilEquity = pd.DataFrame()
+        gasEquity = pd.DataFrame()
+
+        row = 0
+        for year in self.data:
+            coalEquity.loc[row, "Year"] = year
+            coalEquity.loc[row, "Coal Equity"] = coalEmv[year].sum()
+
+            oilEquity.loc[row, "Year"] = year
+            oilEquity.loc[row, "Oil Equity"] = oilEmv[year].sum()
+
+            gasEquity.loc[row, "Year"] = year
+            gasEquity.loc[row, "Gas Equity"] = gasEmv[year].sum()
+
+            row += 1
+
+        coalEquity.set_index("Year", inplace=True)
+        oilEquity.set_index("Year", inplace=True)
+        gasEquity.set_index("Year", inplace=True)
+
+        aggregateTable = pd.concat([aggregateTable, fossilFuelEquity, totalEquity, coalEquity, oilEquity, gasEquity]
+                                    , axis=1)
+        self.aggregateTable = aggregateTable
+        return aggregateTable
 
     def aggregate_table(self):
         # make Total Individual Equity column

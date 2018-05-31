@@ -12,78 +12,96 @@ class Analyst:
     def __init__(self, dfs):
         self.dfs = dfs
 
-    def analyze(self, dataframefile):
-        matchedDfs = self.match()
-        # this is my intermediate write function that i will replace with benchmark design
-        for year in matchedDfs:
-            dataframefile.data = matchedDfs[year]
-            dataframefile.write(year+'assessment', path="./data/carbon_assessment/")
-            # filter for flagged carbon rows
+    def analyze_equity(self, dataframefile):
+        # analyze will match the available data and then compute summary statistics
+        # first, get the years that the user has requested
+        years = sorted(set([key[:4] for key in self.dfs]))
+        matchedData = self.match_data(years)
+        # write the matched files to /assessment/
+        for year in matchedData:
+            dataframefile.data = matchedData[year]
+            dataframefile.write(year+'assessment', path="./data/assessment/")
+            companyNames = pd.DataFrame(dataframefile.data.loc[:, "Company(Company)"])
+            companyNames = companyNames[companyNames.loc[:, "Company(Company)"].notnull()]
+            companyNames["MarketCap(B)"] = None
+            dataframefile.data = companyNames
+            dataframefile.write(year+'MarketCaps', path="./data/financial_data/")
 
-        targetHeld = self.compute_target_held(matchedDfs)
-        # print outputs of targetHeld to commandline for now
-        for year in targetHeld:
-            percentage = round(targetHeld[year] * 100, 2)
-            print(f"In {year}, fossil fuel stocks comprised {percentage}% of your individual equity portfolio.")
-
-        carbonHeld = self.compute_carbon_held(matchedDfs)
-        for year in carbonHeld:
-            dataframefile.data = carbonHeld[year]
-            dataframefile.write(year+'analysis', path="./data/benchmarks/")
-        # write final assessment to a CSV file
-        # DEVELOP: summary statistics to print to commandline
-
-    def match(self):
-        # this should return one master dictionary by year with ALL data in one dataframe for that year
-        # i.e. dfs['2016carbon_data']
-        # pull the first 4 chars of the key and store to keep track of how many years
-        matchedDfs = {}
-        years = set([key[:4] for key in self.dfs])
-        print(f"The years of data being matched and analyzed are: {years}")
+    def analyze_carbon(self, dataframefile):
+        # get the years
+        years = sorted(set([key[:4] for key in self.dfs]))
+        # check if the user has financial data for this year
+        completeData = {}
         for year in years:
-            # pull that year's equity and carbon data
-            # check to make sure there is equity, carbon, and financial data for that year
+            completeData[year] = self.dfs[year + "assessment"]
             try:
-                equity = self.dfs[year+"equity_data"]
-                carbon = self.dfs[year+"carbon_data"]
                 financial = self.dfs[year+"financial_data"]
             except KeyError:
-                print(f"No complete match for {year}")
+                print(f"No financial data for {year}, will not compute fair-share allocation")
+                continue
+            # if the user has financial data, update the matched data to include it
+            completeData[year] = self.match_finance(year, completeData[year], financial)
+
+        # compute carbon held if there was financial data provided
+        analyzedData = self.analyze_data(completeData)
+        # write fossil fuel assessment to CSV files in /benchmarks
+        for year in analyzedData:
+            dataframefile.data = analyzedData[year]
+            dataframefile.write(year+'benchmarks', path="./data/benchmarks/")
+
+    def match_data(self, years):
+        matchedData = {}
+        for year in years:
+            # check if the user has equity data for this year
+            try:
+                equity = self.dfs[year+"equity_data"]
+            except KeyError:
+                print(f"No equity data for {year}, will not match")
                 continue
 
-            allColumns = [x for x in equity.columns] + [y for y in carbon.columns] + [z for z in financial.columns]
-            # remove duplicate values from allColumns
-            allColumns = set(allColumns)
-            # create matchedDf with columns of all three data sets
-            matchedDf = pd.DataFrame(index=range(len(equity.index)), columns=allColumns)
-            # populate Stocks column for pd.merge(left, right, on='Stocks')
-            matchedDf.Stocks = equity.Stocks
+            # check if the user has carbon data for this year
+            try:
+                carbon = self.dfs[year+"carbon_data"]
+            except KeyError:
+                print(f"No carbon data for {year}, will not match")
+                continue
+            # if the user has both equity and carbon data, match them
+            matchedData[year] = self.match_equity(year, equity, carbon)
 
-            # get lists of all companies in CARBON data and all companies in EQUITY data
-            carbonCompanies = [x for x in carbon.loc[:, 'Company(Company)']]
-            equityCompanies = [x for x in equity.loc[:, 'Stocks']]
 
-            for carbonCompany in carbonCompanies:
-                bestStocks = []
+        return matchedData
 
-                # iterate through all equityCompanies and store matches of 100% to bestStocks
-                for equityCompany in equityCompanies:
-                    # this will match the best equityCompany to the current carbonCompany
-                    #standardize letter case
-                    # standardize punctuation
-                    # standardize whitespace
-                    # r1 = equityCompany.lstrip().strip()
-                    # r1 = "".join(r1)
-                    # r2 = carbonCompany.lstrip().strip()
-                    # r2 = "".join(r2)
-                    # matchRatio = fuzz.partial_token_set_ratio(r1, r2)
-                    matchRatio = fuzz.partial_token_set_ratio(equityCompany, carbonCompany)
-                    thresh = 90
-                    if matchRatio < thresh:
-                        continue
-                    else:
-                        bestStocks.append(equityCompany)
+    def match_equity(self, year, equity, carbon):
+        # will return a dataframe with the matched data
+        # first, instantiate the matched dataframe from the equity index
+        # and the columns from both data files
+        allColumns = [x for x in equity.columns] + [y for y in carbon.columns]
+        # remove duplicate values from allColumns, order doesn't matter
+        allColumns = set(allColumns)
+        # create matchedDf with columns of all three data sets
+        matchedDf = pd.DataFrame(index=range(len(equity.index)), columns=allColumns)
+        # populate Stocks column for pd.merge(left, right, on='Stocks')
+        matchedDf.Stocks = equity.Stocks
 
+        # get a list of carbon comapnies and equity stock names for matching
+        carbonCompanies = [x for x in carbon.loc[:, 'Company(Company)']]
+        equityCompanies = [x for x in equity.loc[:, 'Stocks']]
+
+        # iterate through all of the carbon companies first, because the user
+        # is trying to see if a stock is on the carbon list
+        for carbonCompany in carbonCompanies:
+            bestStocks = [] # create a place to store best matches
+            # for now, using edit distance w/90% match threshhold
+            # in the future, would recommend cosine similarity to catch abbreviations
+            for equityCompany in equityCompanies:
+                matchRatio = fuzz.partial_token_set_ratio(equityCompany, carbonCompany)
+                thresh = 90
+                if matchRatio < thresh:
+                    continue
+                else:
+                    bestStocks.append(equityCompany)
+
+                # if there are no matches to the carbon company, then move on
                 if len(bestStocks) == 0:
                     continue
                 else:
@@ -91,75 +109,64 @@ class Analyst:
                     carbonRow = carbon['Company(Company)'] == carbonCompany
                     carbonValues = carbon[carbonRow]
 
+                    # iterate if there are multiple stock options in one company
                     for equityCompany in bestStocks:
-                        # match financial data before replacing index in carbon values
-                        currentCarbonCompany = carbonValues['Company(Company)'].values[0]
-                        financialRow = financial['Company'] == currentCarbonCompany
-                        financialValues = financial[financialRow]
                         # pull the index matching the stock in matchedDf for updating and align indices
                         carbonValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index # ValueError
                         # the above error occurs when a company has a duplicate row in both the Coal AND Oil and Gas
-                        # for now, I'm concatenating values in the CSV itself but think about generalizing
-                        financialValues.index = matchedDf[matchedDf['Stocks'] == equityCompany].index
-                        # update matchedDf with both carbon and financial data
+                        # update matchedDf with both carbon data
                         matchedDf.update(carbonValues)
-                        matchedDf.update(financialValues)
 
-            matchedDf.update(equity)  # index is already aligned to equity
-            # append populated matchedDf to the dictionary keyed by year
-            matchedDfs[year] = matchedDf
-            print(f"{year} complete...")
-        return matchedDfs
+        matchedDf.update(equity)  # index is already aligned to equity
+        print(f"{year} complete...")
+        return matchedDf
 
-    def compute_target_held(self, matchedDfs):
-        # for each dataframe in matchedDfs
-        targetHeld = {}
-        for year in matchedDfs:
-            df = matchedDfs[year]
-            totalEquityValue = df['EndingMarketValue'].sum()
-            targetEquityValue = df.loc[df['Company(Company)'].notnull(), 'EndingMarketValue'].sum()
-            targetHeld[year] = targetEquityValue / totalEquityValue
+    def match_finance(self, year, matchedDf, financial):
+        # create a new column in matchedDf to include MktCap
+        matchedDf["MarketCap(B)"] = None
+        # iterate through the carbon company names in matchedDf
+        carbonCompanies = matchedDf.loc[matchedDf.loc[:, "Company(Company)"].notnull()].loc[:, "Company(Company)"]
+        for carbonCompany in carbonCompanies:
+            # check if carbon company is in financial list
+            if carbonCompany in financial.loc[:, "Company(Company)"].values:
+                # get financial data linked to the company
+                financialRow = financial.loc[:, 'Company(Company)'] == carbonCompany
+                financialData = financial[financialRow].loc[:, "MarketCap(B)"].values[0]
+                matchedRow = matchedDf.loc[:, "Company(Company)"] == carbonCompany
+                matchedDf.loc[matchedRow, "MarketCap(B)"] = financialData
 
-        return targetHeld
+        return matchedDf
 
-    def compute_carbon_held(self, matchedDfs):
-        # returns a dictionary of dataframes with carbon holdings information for each dataframe in matchedDfs
-        carbonHeld = {}
-        # find where the columns with units are - those like Name(Units)
-        # pull the name from the Name and pull the Units from (Units)
-        # populate fuels with Name != Company
-        for year in matchedDfs:
-            df = matchedDfs[year]
-            fuels = self.get_fuels(df)  # I'm giving the user flexibility to do fuels by year
-            # dictionary comprehension to modify the names
+    def analyze_data(self, completeData):
+        analyzedData = {}
+        for year in completeData:
+            df = completeData[year]
+            fuels = self.get_fuels(df) # get fuels by year
+            # modify the fuel names
             reserves = {k: k+v for k, v in fuels.items()}
 
             for key in reserves:
-                # populate dataframe with intensities (tCO2/$ of company market cap)
-                # fuels[key] is the units of the name of the fuel, market cap has to be in B
-                df[key + 'Intensity' + fuels[key] + '/$B'] = df[reserves[key]] / df['MarketCap(B)']
-                # populate dataframe with absolute CO2 held per stock ($ held * CO2 intensity)
-                df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue']
-                # calculate the percentile of total reserves while we're here
-            # remove any infinities created by EMV = 0
+                # populate dataframe with intensities
+                # fuels[key] is the units of the name of the fuel, market cap is in B
+                try:
+                    df[key + 'Intensity' + fuels[key] + '/$B'] = df[reserves[key]] / df['MarketCap(B)']
+                    df[key + '(tCO2)'] = df[key + 'Intensity' + fuels[key] + '/$B'] * df['EndingMarketValue']
+                except KeyError:
+                    continue
+
+            # remove infinities created by EMV = 0
             df = df.replace(np.inf, np.nan)
-            # only save rows that have carbon allocated to them
+            # save rows that have a carbon company affiliated
             df = df[df.loc[:, "Company(Company)"].notnull()]
-            # address companies with multiple stock options here
+            # address companies with multiple stock options
             df = self.combine_multiple_stocks(df)
 
             for key in reserves:
                 df[key + 'Pctile'] = df[reserves[key]].rank(pct=True)
                 df[key + '(tCO2)Pctile'] = df[key + '(tCO2)'].rank(pct=True)
-                # df[key + 'DivestRatio'] = df[key + 'Intensity' + fuels[key] + '/$B'].divide(df['EndingMarketValue'])
-            # drop financial rows not needed in this view
-            # 4/12/18 I'm commenting out this drop step because
-            # 1) I cant guarantee what the equity columns will include
-            # and 2) there is no harm in including all data in the analysis view for now
-            #df = df.drop(labels=['Shares', 'Price', 'EndingMarketValue', 'MarketCap(B)'], axis=1)
-            carbonHeld[year] = df
 
-        return carbonHeld
+            analyzedData[year] = df
+        return analyzedData
 
     def get_fuels(self, df):
         # returns a dictionary with keys as names of fuels and values of units of fuels
@@ -177,11 +184,11 @@ class Analyst:
         # returns an analysis dataframe with multiple stock rows combined
         # into one company row to aggregate holdings across multiple
         # options in a company
-        multipleStockCompanies = set(df[df.duplicated(subset="Company")].Company)
+        multipleStockCompanies = set(df[df.duplicated(subset="Company(Company)")].loc[:, "Company(Company)"])
         for duplicate in multipleStockCompanies:
             combinedStocksCompany = pd.DataFrame()
-            allCompanyStocks = df[df.Company == duplicate]
-            keepSame = ["Company", "MarketCap(B)", "Stocks", "CoalIntensity(GtCO2)/$B",
+            allCompanyStocks = df[df.loc[:, "Company(Company)"] == duplicate]
+            keepSame = ["Company(Company)", "MarketCap(B)", "Stocks", "CoalIntensity(GtCO2)/$B",
                         "OilIntensity(GtCO2)/$B", "GasIntensity(GtCO2)/$B"]
             sumColumns = ["EndingMarketValue", "Coal(tCO2)", "Oil(tCO2)", "Gas(tCO2)"]
 
